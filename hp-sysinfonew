@@ -1,0 +1,1124 @@
+#!/bin/bash
+
+#####		Variables
+###
+	SCRIPT_VERSION=HP-4.4-01
+	RELVL_VERSION=4.4-01
+	SYSINFO_VERSION=hp-sysinfo-4.4-GM
+	PCHLVL="Patch-Level-01"
+	SYS_VER_REL_DATE="13-February-2013"
+	MOTR="Thank You for using my hardware and system information gathering script. 
+		Enjoy! and hope you find it useful, as-is, This will be my last Revision"
+	PROGNAME=$(basename $0)
+	HOST=`hostname`
+        VERSION="HP-4.4"
+	TDATE=`date +%y%m%d-%H.%M.%S`
+	ERRL=`2> /dev/null`
+	SUSE=false
+	DEB=false
+	REDHAT=false
+	FED=false
+	RPMSIG=false
+	MAILA=false
+	VERBOSE=false
+	RELVER=false
+	RELEASE="$SCRIPT_VERSION $SYS_VER_REL_DATE"
+	PARTIAL=false
+	HELP=false
+	OPTIONS="Options-Usage:
+	\nHelp		\t\t[-h]	\tShows this list
+	\nVerbose	\t[-v]	\tNo pauses at info outputs and removes some output
+	\nPartial	\t[-p]	\tOnly creates the summary text file/s- .txt and .rtf
+	\nRelease	\t[-s]	\tOnly prints the Script Release Version and date
+	\nRPM-Signatures	\t[-g]	\tHP-PreInstall Only-- Checks the RPM Signatures in \n\t\t\tthe HP_SWSetup Directory
+	\nDebug		\t\t[-e]	\tHP-PreInstall only-- Outputs script-run errors to \n\t\t\ta log file -script-errors.log-
+	\nE-Mail	\t\t[-m]	\tAsks for the -to and from- email addresses to send \n\t\t\tthe SystemInformation.txt file \n\t\t\tAnd asks if you want to attach the tar-ball \n\t\t\t (No Debian Support at this time)"
+#####################################################################################
+#####	Setting Options
+#####################################################################################
+###
+if test "x$1" = "x-s"; then
+	RELVER=true
+fi
+if $RELVER; then
+	echo -e $PROGNAME
+	echo -e $RELEASE
+	echo -e $PCHLVL
+	exit $?
+fi
+if test "x$1" = "x-h"; then
+	HELP=true
+fi
+
+if $HELP; then
+	echo -e $OPTIONS
+	exit $?
+fi
+echo -e $OPTIONS
+sleep 3
+#
+if test "x$1" = "x-v"; then
+	VERBOSE=true
+fi
+
+sleep()
+{
+	if $VERBOSE; then
+		command sleep "$@"
+	fi
+}
+if test "x$1" = "x-e"; then
+	ERRL=`2>> script-errors.log`
+	echo -e "\n\tTEST 1" >> script-errors.log
+fi
+if test "x$1" = "x-p"; then
+	PARTIAL=true
+fi
+
+if test "x$1" = "x-m"; then
+	MAILA=true
+fi
+if test "x$1" = "x-g"; then
+	if [ "`grep -i 'oem-preload' /etc/ImageVersion`" != "" ]; then
+		RPMSIG=true
+	else
+		echo -e "\n\tThis is not a HP-SLED-PreInstall OS! \nDo not use the -g Option, use the -h Option for more information-" 
+		exit $?
+	fi
+fi
+echo -e "\n$PROGNAME"
+echo -e $RELEASE
+echo -e $PCHLVL
+sleep 2
+###
+###################################################################################
+#####	Checking for root, setting error exit
+###################################################################################
+###
+echo -e "\n#############################################################"
+echo -e "\n\tYou MUST be root to run this script, checking now..."
+echo -e "\n#############################################################"
+sleep 2
+function error_exit
+{
+	echo "${PROGNAME}: ${1:-"you are not root, please run as root"}" >&2
+	exit 1
+}
+###
+[[ "$UID" == "0" ]] && : || error_exit
+#
+# Set file creation mask so that all files are created with 666 permissions.
+umask 000
+#
+###################################################################################
+#####	Checking for prior script run, Beginning
+###################################################################################
+if [ -a "$PWD"/SystemInformation ]; then
+	cd $PWD/SystemInformation
+else
+	mkdir $PWD/SystemInformation
+	cd $PWD/SystemInformation
+fi
+###################################################################################
+#####	Checking for script run interrupted and creating directories, setting perms
+###################################################################################
+if [ -a "$PWD"/"$HOST"-*-files ]; then
+	if [ -a "$PWD"/old ]; then
+		mv $PWD/$HOST-* $PWD/old/.
+		mv Sys*.txt $PWD/old/.
+	else 
+		mkdir $PWD/old
+		mv $PWD/$HOST-* $PWD/old/.
+		mv Sys*.txt $PWD/old/.
+	fi
+fi
+#
+####
+###################################################################################
+#####	Setting Variable for Directory and file parameters
+###################################################################################
+##
+## 	Where do you want to place the file?
+	HWINFO=$PWD/$HOST.rtf
+##
+##### Initialization And Setup #####
+#
+###################################################################################
+#####	Beginning Run Script
+###################################################################################
+###
+###################################################################################
+#####	Main Logic
+###################################################################################
+##	Beginning File Creation
+mkdir "$HOST"-files
+chmod -R 4777 "$HOST"-files
+$VERBOSE && echo -e "\n\tThis script is the creation of S.Miller, Released under GPL v2.0,
+Please cat this script and read the full GPL, and my notes, 
+change-logs, and contributors. Please submit any further requests, additions, 
+subtractions, and/or suggestions to:
+#####              shawn@woodbeeco.com "
+sleep 4
+###################################################################################
+#####	Disclaimer and contributors
+###################################################################################
+#$VERBOSE && echo -e "\n
+#####  This is for personal and business use, and as of release 3.0 to 4.0-1, was
+#####  offered to the HP-Linux team, The SUSE team, and the Canonical team,
+#####	 and That was given as hp-sysinfo to HP-Linux team, and SUSE. 
+#####	First HP revision release date 15 Sept 2011.
+#####	I named it back to the original name and from the Release-Date of 4.1-0, 
+#####	will no longer maintain the HP script, I will only develop my own original
+#####	script from there on. 
+#####  Contributors to this script: 
+#####	Developers at SUSE, and
+#####  Chris Gagnon, from Canonical.
+#####	Chris Franks aka shunter, loomsen, John Skovran aka nykkto, Kat, 
+#####  Milton Brown, Zubair, with requests form Robert Lemaire on behalf of of SUSE
+sleep 3
+###################################################################################
+#####	Script description
+###################################################################################
+$VERBOSE && echo -e "\n\tThis script is for RH, SUSE, and Debian systems,
+to gather a system-wide arrangement of hardware and software 
+information to speed up the process of determining root-cause
+of specific problems. It also produces a 'quick-reference' to 
+the most common queries and captures them in a .txt file, a 
+.rtf file (for the windows users to view) and tars them all up 
+for easier distribution."
+sleep 4
+###
+###################################################################################
+#####	Setting Distribution Variable/s
+###################################################################################
+###
+echo ""
+if [ -a /etc/SuSE-release ]; then
+	if [ "`cat /etc/SuSE-release | grep 'Enterprise'`" != "" ]; then
+		SUSE=true
+		SLE=true
+		echo "This Distribution is SUSE-SLED"
+		if [ -a /etc/ImageVersion ]; then
+			if [ "`grep -i 'oem-preload' /etc/ImageVersion`" != "" ]; then
+				HPSLED=true
+				SUVER=/etc/ImageVersion
+			fi
+		else
+			SUVER=/etc/SuSE-release
+		fi
+	else
+		if [ "`cat /etc/SuSE-release | grep -i 'opensuse'`" != "" ]; then
+			echo "This Distribution is OpenSuSE"
+			SUSE=true
+			OSUS=true
+			SUVER=/etc/SuSE-release
+		fi
+	fi
+	if [ "$HPSLED" == "true" ]; then
+		OSUS=false
+	fi
+fi
+if [ -a /etc/debian_version ]; then
+	if [ -a /etc/buildstamp ]; then
+		DEB=true
+		echo "Ubuntu Derivative"
+	else
+		DEB=true
+		echo "Debian Core"
+	fi
+fi
+if [ -a /etc/redhat-release ]; then
+	if [ "`grep -i 'red hat' /etc/redhat-release`" != "" ]; then
+		REDHAT=true
+		echo "RedHat"
+	fi
+	if [ "`grep -i 'fedora' /etc/redhat-release`" != "" ]; then
+		FED=true
+		echo "Fedora"
+	fi
+	sleep 3
+fi
+echo ""
+###
+#
+###
+###################################################################################
+#####	Setting Variables, GFX/WLAN
+###################################################################################
+##	Need to set all variables **************
+###	Graphics Variables-
+###		AMD Graphics Variable is VGFXA  
+###		Intel Graphics Variable is VGFXI
+###		Nvidia Graphics Variable is VGFXN
+###		VGFX is either -Switchable or Non-Switchable-
+###	WLAN- Variables
+###		Broadcom is WLANBCM
+###		Atheros is WLANATH
+###		Intel is WLANINT
+###		Ralink is WLANRLK
+###	End of variables needed
+####
+##	Setting Graphics Variables--
+####
+if [ "`lspci -nnk | grep -i vga | grep 'ATI'`" != "" ]; then
+	export VGFXA="amd"
+	if [ ! -a /root/atisysteminfo-report.txt ]; then
+		if [ -a /usr/sbin/atigetsysteminfo.sh ]; then
+			atigetsysteminfo.sh 1> /dev/null 2> /dev/null
+		fi
+	fi
+fi
+if [ "`lspci -nnk | grep -i vga | grep 'Intel'`" != "" ]; then
+	export VGFXI="intel"
+fi
+if [ "`lspci -nnk | grep -i vga | grep -i nvidia`" != "" ]; then
+	export VGFXN="nvidia"
+fi
+if [ "$VGFXA" == "amd" ]; then
+	if [ "$VGFXI" == "intel" ]; then
+		export VGFX="Switchable-Graphics"
+	fi
+else
+	export VGFX="Non-Switchable Graphics"
+fi
+#
+###	Setting WLAN Variables--
+#
+if [ "`lspci -nnk | grep -i network | grep -i 'Ather'`" != "" ]; then
+	export WLANA="Atheros"
+fi
+if [ "`lspci -nnk | grep -i network | grep -i 'Rali'`" != "" ]; then
+	export WLANA="Ralink"
+fi
+if [ "`lspci -nnk | grep -i network | grep -i 'Intel'`" != "" ]; then
+	export WLANA="Intel"
+fi
+if [ "`lspci -nnk | grep -i network | grep -i 'Broadcom'`" != "" ]; then
+	export WLANA="Broadcom"
+fi
+if [ "`lspci -nnk | grep -i 'network' | grep -i 'broadcom'`" == "" ]; then
+	if [ "`lspci -nnk | grep -i 'network' | grep -i 'atheros'`" == "" ]; then
+		if [ "`lspci -nnk | grep -i 'network' | grep -i 'intel'`" == "" ]; then
+			if [ "`lspci -nnk | grep -i 'network' | grep -i 'ralink'`" == "" ]; then
+				export WLANA="Non-Standard"
+			fi
+		fi
+	fi
+fi
+if [ "`lspci -nnk |grep 'Network controller'`" == "Broadcom" ]; then
+	WLAN="bcm"
+fi
+if [ "`lspci -nnk |grep 'Network controller'`" == "Intel" ]; then
+	WLAN="intel"
+fi
+if [ "`lspci -nnk |grep 'Network controller'`" == "Ralink" ]; then
+	WLAN="ralink"
+fi
+if [ "`lspci -nnk |grep 'Network controller'`" == "Atheros" ]; then
+	WLAN="ath"
+fi
+##
+###
+###############################################################################################################
+##---------------------------------------------------------------------------
+#####	Checking ProtoType Name (2011,2012, and 2013 platforms only- Remove this section if NOT a Pre-Load System)
+##---------------------------------------------------------------------------
+###############################################################################################################
+###
+#	add variables for code-names
+####	Rich's and Kat's edit-
+#	get Model no and strip the line
+if ! $FED; then
+if $HPSLED; then
+	PMOD=$(s2ram -i | grep sys_product | awk '{print $5}' | sed 's/[^0-9]//g')
+	case "$PMOD" in
+####	2011 Platforms-
+#"8760")
+#	CODEN=Aerosmith
+#	;;
+#	ENDING
+*)
+	CODEN='This Option is no longer supported or maintained'
+	;;
+esac
+fi
+fi
+###
+#	End of Prototype codename 
+###
+echo -e "\n
+############################################################################
+#####	Gathering logs, generating components lists, etc.
+############################################################################"
+##	Beginning PARTIAL	##
+if ! $PARTIAL; then
+	if ! $OSUS; then
+		if $HPSLED; then
+			if [ -a /usr/sbin/alsa-info.sh ]; then
+				ALSABIN='/usr/sbin/alsa-info.sh'
+				if [ -x $ALSABIN ]; then
+					AVER=$(grep SCRIPT_VERSION= $ALSABIN | cut -d= -f2 | sed -e 's/\.//g')
+					if [ $AVER -ge 0458 ]; then
+						$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl
+					else
+						echo y | $ALSABIN --no-dialog --no-upload --with-configs --with-devices &>/dev/null
+						cp /tmp/alsa-info* $HOST-files/alsa-info.txt
+					fi
+				fi
+			fi
+		fi
+	fi
+###################################################################################
+###	- Gathering Distro/Non-Distro logs
+###################################################################################
+##	All Distro Commands-
+	lspci -nnk | less > $HOST-files/lspci-kernel.log $ERRL
+	dmesg | less > $HOST-files/dmesg.txt $ERRL
+	cp /var/log/Xorg.0.log $HOST-files/Xorg0log.txt $ERRL
+	lsusb -v | less > $HOST-files/lsusb-v.txt $ERRL
+	lshal > $HOST-files/lshal.txt $ERRL
+	cpufreq-info > $HOST-files/cpufreqInfo.txt $ERRL
+		mkdir $HOST-files/xorgconf
+	cp /etc/X11/xorg.* $HOST-files/xorgconf/. $ERRL
+	if [ "$VGFXA" == "amd" ]; then
+		cp /root/*.txt $HOST-files/. $ERRL
+		#ATI-Changed-Invalid--cp /usr/share/ati/fglrx-install.log $HOST-files/. $ERRL
+	fi
+##	Non-Distro Specific- 4-Part HW-IDs
+	lspci -nnm  | less > lspci-HWID-ALL.log.ids $ERRL
+	if [ "`lspci -nnm | grep -i vga | grep ATI`" != "" ]; then
+		echo -e "\tAMD/ATI 4-Part IDs..." > lspci-HWID-core.txt.ids
+		lspci -nnm | grep -i vga | less > lspci-HWID-core.txt.ids $ERRL
+	else
+		echo -e "\tGraphics 4-Part IDs..." > lspci-HWID-core.txt.ids
+		lspci -nnm | grep -i vga | less > lspci-HWID-core.txt.ids $ERRL
+	fi
+#
+	echo -e "\n\tNetworking 4-Part IDs..." > lspci-HWID-core.txt.ids 
+	echo -e "\tWireless" > lspci-HWID-core.txt.ids 
+	grep -i 'Network controller' lspci-HWID-ALL.log.ids > lspci-HWID-core.txt.ids $ERRL
+	echo -e "\n\tWired" > lspci-HWID-core.txt.ids
+	grep -i 'Ethernet controller' lspci-HWID-ALL.log.ids > lspci-HWID-core.txt.ids $ERRL
+#	
+	echo -e "\n\tAudio 4-Part IDs..." > lspci-HWID-core.txt.ids
+	grep -i 'audio' lspci-HWID-ALL.log.ids > lspci-HWID-core.txt.ids $ERRL
+	echo -e "\n\tModem" > lspci-HWID-core.txt.ids
+	if [ -a /proc/asound/card0/codec\#1 ]; then
+		cat /proc/asound/card0/codec\#1 > lspci-HWID-core.txt.ids $ERRL
+	else
+		echo 'no hardware found' > lspci-HWID-core.txt.ids
+	fi
+	mv lspci-HWID-ALL.log.ids lspci-HWID-ALL.txt
+	if [ -a $HOST-*-files ]; then
+		if [ ! -a $HOST-*-files/$HOST-HWIDs ]; then
+			mkdir $HOST-*-files/$HOST-HWIDs
+		fi
+		mv lspci-HWID-core.txt.ids $HOST-*-files/$HOST-HWIDs/.
+		mv lspci-HWID-ALL.txt $HOST-*-files/$HOST-HWIDs/.
+		chmod -R 777 $HOST-*-files
+	else
+		if [ -a $HOST-HWIDs ]; then
+			mv lspci-HWID-core.txt.ids $HOST-HWIDs/lspci-HWID.txt
+			mv lspci-HWID-ALL.txt $HOST-HWIDs/.
+			chmod -R 777 $HOST-HWIDs
+		else
+			mkdir $HOST-HWIDs
+			mv lspci-HWID-core.txt.ids $HOST-HWIDs/lspci-HWID.txt
+			mv lspci-HWID-ALL.txt $HOST-HWIDs/.
+			chmod -R 777 $HOST-HWIDs
+		fi
+#
+	fi
+##	Distro Specific
+	if $SUSE; then
+		rpm -qa --last | less > $HOST-files/rpmqalast.txt
+		cp /var/log/NetworkManager $HOST-files/NetworkManager.txt
+		cp /var/log/messages $HOST-files/VLM.txt
+		chmod 777 $HOST-files/VLM.txt
+		cp /var/log/zypp/history $HOST-files/zypper-hist.txt
+		cp /boot/grub/menu.lst $HOST-files/.
+		dmidecode | less > $HOST-files/dmidecode.log $ERRL
+		acpidump | less > $HOST-files/acpidump.dat
+		hwinfo --all --log $HOST-files/HWINFOLOG.txt
+		if $HPSLED; then
+			xrandr -q | less > $HOST-files/xrandrq.log $ERRL
+			if [ -a /usr/share/HP_SWSetup ]; then
+				ls /usr/share/HP_SWSetup/ | less > $HOST-files/HPSWSrpms.txt
+			fi
+			if $RPMSIG; then
+				if [ -a /usr/share/HP_SWSetup ]; then
+					echo -e "\n\n\tSignatures::" >> $HOST-files/HPSWSrpms.txt
+					rpm --checksig /usr/share/HP_SWSetup/*.rpm | sed 's/\/usr\/share\/HP_SWSetup\//-------/g' >> $HOST-files/HPSWSrpms.txt
+				fi
+			fi
+		fi
+	fi
+##	Red Hat
+	if $REDHAT; then
+		rpm -qa --last > $HOST-files/rpmqalast.txt
+		cp /var/log/messages $HOST-files/VLM.txt
+		chmod 777 $HOST-files/VLM.txt
+		if ! $FED; then
+			cp /boot/grub/menu.lst $HOST-files/.
+			dmidecode | less > $HOST-files/dmidecode.log $ERRL
+		fi
+#		acpidump > $HOST-files/acpidump.dat
+	fi
+##	Ubuntu
+	if $DEB; then
+		dpkg --list > $HOST-files/debsqalast.txt	
+		grep -i networkmanager /var/log/syslog > $HOST-files/NetworkManager.txt
+		dmidecode | less > $HOST-files/dmidecode.log $ERRL
+		cp /var/log/syslog $HOST-files/VLM.txt
+		cat /var/log/dpkg.log | grep "\ install\ " | sort -n > $HOST-files/install-history.txt
+	fi
+###################################################################################
+#####	Errors
+###################################################################################
+	dmesg | grep -i error | less > $HOST-files/ERRdmesg.txt
+	if $DEB; then
+		grep -i error /var/log/syslog > $HOST-files/ERRsyslog.txt
+	fi
+	if $SUSE; then
+		grep -i error /var/log/messages >> $HOST-files/ERRvlm.txt
+	fi
+	if $REDHAT; then
+		grep -i error /var/log/messages > $HOST-files/ERRvlm.txt
+	fi
+	dmesg | grep -i warn > $HOST-files/WARNdmesg.txt
+	if $DEB; then
+		grep -i warn /var/log/syslog > $HOST-files/WARNsyslog.txt
+	fi
+	if $SUSE; then
+		grep -i warn /var/log/messages > $HOST-files/WARNvlm.txt
+	fi
+	if $REDHAT; then
+		grep -i warn /var/log/messages > $HOST-files/WARNvlm.txt
+	fi
+#####################################################################################
+#####	- END-OF Gathering Distro/Non-Disto logs
+#####################################################################################
+###
+#
+##	Confirming Permissions 
+	chmod -R 4777 $HOST-files
+##	Ending ! PARTIAL	##
+fi
+#
+#####################################################################################
+#####	Setting Synaptics file
+#####################################################################################
+if $HPSLED; then
+	if [ "`ls /root/ | grep -i 'syn'`" == "" ]; then
+		if [ -a /opt/Synaptics/bin/syncontrol ]; then
+			/opt/Synaptics/bin/syncontrol diag $ERRL
+		fi
+	fi
+fi
+echo -e "\n
+##############################################################################
+#####	Generating Main Sysinfo logs and text file/s
+##############################################################################
+"
+echo ""	
+echo "############################################################" #RQH-01
+echo -e "\tFile-name of script: $PROGNAME" > $HWINFO
+echo -e "\n\tScript-Version: $SYSINFO_VERSION" >> $HWINFO
+echo -e "\t$PCHLVL" >> $HWINFO
+echo -e "\tScript-Version Release Date: $SYS_VER_REL_DATE" >> $HWINFO
+echo -e "\n\tDate and Time---" >> $HWINFO
+echo $TDATE >> $HWINFO
+echo -e "\n\tFile-name/s of main System Information: $HOST.txt and $HOST.rtf for winusers " >> $HWINFO
+echo "#.C4.##################################################.C4.#" #RQH-02
+###
+#
+###
+#####################################################################################
+#####	Checking BIOS and System Information
+#####################################################################################
+###
+echo -e "\n\tMain System Information" >> $HWINFO
+if $SUSE; then
+	s2ram -i | grep -i "This machine" >> $HWINFO
+	dmidecode -s system-product-name >> $HWINFO
+fi
+if $HPSLED; then
+	echo -e "\n\tPrototype-Codename is... $CODEN " >> $HWINFO
+	if [ -z $PMOD ]; then
+		echo -e "\tThis Option is no longer supported or maintained" >> $HWINFO
+	fi
+fi
+if $SUSE; then
+	s2ram -i | grep -i "sys_*" >> $HWINFO
+fi
+if ! $FED; then
+	dmidecode -s system-manufacturer >> $HWINFO
+	dmidecode -s system-version >> $HWINFO
+	dmidecode -s system-serial-number >> $HWINFO
+	dmidecode -s system-uuid >> $HWINFO
+	echo -e "\n\tBios Version is-" >> $HWINFO
+	dmidecode -s bios-version >> $HWINFO
+fi
+if $SUSE; then
+	hwinfo --bios | grep "System Info:" -A 5 | grep -i serial >> $HWINFO
+fi
+echo "##########******************************####################" #RQH-03
+echo "########*                                *##################" #RQH-04
+##	Removed KBC
+echo "######*       @######################|   *##################" #RQH-05
+##
+echo -e '\n\tuname -a output' >> $HWINFO
+uname -a >> $HWINFO
+echo "#####*     @#########################|    *#################" #RQH-06
+###
+#
+###
+#####################################################################################
+#####	Checking Image Version/Release 
+#####################################################################################
+###
+echo -e "\n\tDistro and Image Version" >> $HWINFO
+if $DEB; then
+	echo -e "\tUbuntu Image Release" >> $HWINFO
+		if [ -a /etc/buildstamp ]; then
+			cat /etc/buildstamp >> $HWINFO
+		fi
+	lsb_release -a $ERRL >> $HWINFO
+fi
+echo "####*     @##########################|_____    *############" #RQH-07
+if $SUSE; then
+	echo -e "\tSUSE Image Release" >> $HWINFO
+	if [ -a /etc/SuSE-release ]; then
+		cat /etc/SuSE-release >> $HWINFO
+	fi
+	cat $SUVER >> $HWINFO
+	echo "" >> $HWINFO
+###	Checking for missing RPM signatures if -g option was chosen
+	if $RPMSIG; then
+		echo -e "\n\tUnsigned RPMs::" >> $HOST-files/HPSWSrpms.txt
+		grep -i missing $HOST-files/HPSWSrpms.txt >> $HOST-files/HPSWSrpms.txt
+		echo -e "\n\tUnsigned RPMs::" >> $HWINFO
+		grep -i missing $HOST-files/HPSWSrpms.txt >> $HWINFO
+	fi
+fi
+if $REDHAT; then
+	echo -e "\tRedHat Image Release" >> $HWINFO
+	if [ -a /etc/redhat-release ]; then
+		cat /etc/redhat-release >> $HWINFO
+	fi
+fi
+#####################################################################################
+#####	Checking registration For SuSE Distribution
+#####################################################################################
+echo -e "\n\tSystem Registration" >> $HWINFO
+if $SUSE; then
+	if [ -a /root/.suse_register.log ]; then
+		cp /root/.suse_register.log $HOST-files/.
+		echo 'This System IS Registered with SUSE, The registration log has been captured.' >> $HWINFO
+	else
+		echo 'This System is NOT Registered with SUSE' >> $HWINFO
+	fi
+else
+	echo -e "\tThis only Checks SUSE distributions--
+	 if you wish to contribute and supply the same command for your distro, please contact me" >> $HWINFO
+fi
+echo "###*     @#####|                     |#####|    *###########" #RQH-08
+#####################################################################################
+#####	Checking CPU
+#####################################################################################
+echo -e "\n\tProcessor" >> $HWINFO
+if ! $FED; then
+	dmidecode -s processor-version >> $HWINFO
+fi
+if $SUSE; then
+	if [ "`hwinfo --cpu |grep Model`" == "" ]; then
+		echo 'no output' >> $HWINFO
+	else
+		hwinfo --cpu |grep Model >> $HWINFO
+	fi
+fi
+uptime | awk '{print $8,$9,$10,$11,$12}' >> $HWINFO
+echo "###*     @#####|                     |#####|    *###########" #RQH-09
+###
+#
+###
+#####################################################################################
+#####	Checking Memory
+#####################################################################################
+###
+echo -e "\n\tMemory" >> $HWINFO
+if $SUSE; then
+	if [ "`hwinfo --memory |grep 'Memory Size:'`" == "" ]; then
+		echo 'no output' >> $HWINFO
+	else
+		hwinfo --memory |grep 'Memory Size:' >> $HWINFO
+	fi
+fi
+if ! $FED; then
+	dmidecode --type 17 | grep -i size >> $HWINFO
+fi
+echo "###*     @#####|      OFFICIAL       |#####|    *###########" #RQH-10
+###
+#
+###
+###
+#
+###
+#####################################################################################
+#####	Checking Video/Graphics Properties
+#####################################################################################
+###
+#
+echo -e "\n\tVideo Card-" >> $HWINFO
+if ! $SUSE; then
+	lspci -nnk | grep -i vga -A 2 >> $HWINFO
+	echo -e "\n\tThis list will be limited, this section was mainly
+		Created for the SUSE Distribution, which has detailed Graphics driver
+		Information- For NON-SUSE distros ONLY the Kernel driver will be displayed " >> $HWINFO
+	echo -e "\n\t-- if you wish to contribute and supply the same command/output for your distro, please contact me" >> $HWINFO
+	if [ "$VGFX" == "Switchable-Graphics" ]; then
+		if $VGFXA; then
+			echo -e "Your Graphics Card Is- $VGFXA" >> $HWINFO
+			echo -e "\tAMD Graphics" >> $HWINFO
+			lspci -nnk | grep -i vga -A 2 | grep -i kernel >> $HWINFO
+			if ! $UBUNTU; then
+				if [ "`rpm -qa | grep fglrx`" != "" ]; then
+				rpm -qa | grep fglrx >> $HWINFO
+				fi
+				if [ "`rpm -qa | grep radeon`" != "" ]; then
+					rpm -qa | grep radeon >> $HWINFO
+				fi
+			fi
+			if [ -a /root/atisysteminfo-report.txt ]; then
+				if [ "`grep -i 'linux driver release ident' /root/atisysteminfo-report.txt`" != "" ]; then
+					grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+				fi
+				if [ "`grep -i 'ReleaseVersion=' /root/atisysteminfo-report.txt`" != "" ]; then
+					grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+				fi
+			fi
+		fi
+		if $VGFXN; then
+			echo -e "Your Graphics Card Is- $VGFXN" >> $HWINFO
+			echo -e "\tNVidia Graphics" >> $HWINFO
+			lspci -nnk | grep -i vga -A 2 | grep -i kernel >> $HWINFO
+		fi
+		if $VGFXI; then
+			echo -e "Your Graphics Card Is- $VGFXI" >> $HWINFO
+			echo -e "\tIntel Graphics" >> $HWINFO
+			lspci -nnk | grep -i vga -A 2 | grep -i kernel >> $HWINFO
+		fi
+	else
+		lspci -nnk | grep -i vga -A 2 | grep -i kernel >> $HWINFO
+		if [ -a /root/atisysteminfo-report.txt ]; then
+			if [ "`grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2`" != "" ]; then
+				grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+			else
+				grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+			fi
+		fi
+		if ! $UBUNTU; then
+			if [ "`rpm -qa | grep fglrx`" != "" ]; then
+				rpm -qa | grep fglrx >> $HWINFO
+			fi
+			if [ "`rpm -qa | grep radeon`" != "" ]; then
+				rpm -qa | grep radeon >> $HWINFO
+			fi
+			if [ "`rpm -qa | grep nvidia`" != "" ]; then
+				rpm -qa | grep nvidia >> $HWINFO
+			fi
+		fi
+	fi
+fi
+echo "###*     @#####|     $SCRIPT_VERSION       |#####|    *###########" #RQH-11
+if $SUSE; then
+	if [ "$VGFX" == "Switchable-Graphics" ]; then
+		echo -e "Your Graphics Card Is- $VGFX" >> $HWINFO
+		echo -e "\tAMD and Intel Graphics" >> $HWINFO
+		lspci -nnk | grep -i vga -A 2 >> $HWINFO
+		if [ "`hwinfo --gfxcard |grep Model`" == "" ]; then
+			echo 'no output' >> $HWINFO
+		else
+			hwinfo --gfxcard |grep Model >> $HWINFO
+		fi
+		if [ "`rpm -qa | grep fglrx`" != "" ]; then
+			rpm -qa | grep fglrx >> $HWINFO
+		fi
+		if [ "`rpm -qa | grep radeon`" != "" ]; then
+			rpm -qa | grep radeon >> $HWINFO
+		fi
+		if [ -a $HOST-files/rpmqalast.txt ]; then
+			echo $VGFX >> $HWINFO
+			echo -e "\tSUSE rpm version-" >> $HWINFO
+			grep fglrx $HOST-files/rpmqalast.txt >> $HWINFO
+			echo -e "\tAMD Driver Version-" >> $HWINFO
+			if [ -a /root/atisysteminfo-report.txt ]; then
+				if [ "`grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2`" != "" ]; then
+					grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+					grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt | head -n 1 >> $HWINFO
+				else
+					grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+				fi
+			fi
+			hwinfo --gfxcard |grep Driver: >> $HWINFO
+			echo -e "\n\tIntel GFX Driver Version-" >> $HWINFO
+			grep -i "xorg-x11-driver-video" $HOST-files/rpmqalast.txt >> $HWINFO
+		fi
+	else
+		echo -e "Your Graphics Card Is- Non-Switchable-Graphics" >> $HWINFO
+		lspci -nnk | grep -i vga -A 2 >> $HWINFO
+		if [ "`hwinfo --gfxcard |grep Model`" == "" ]; then
+			echo 'no output' >> $HWINFO
+		else
+			hwinfo --gfxcard |grep Model >> $HWINFO
+		fi
+		if [ -a $HOST-files/rpmqalast.txt ]; then
+			if [ "$VGFXA" == "amd" ]; then
+				echo -e "\tSUSE rpm version-" >> $HWINFO
+				if [ "`grep 'fglrx' $HOST-files/rpmqalast.txt`" != "" ]; then
+					grep 'fglrx' $HOST-files/rpmqalast.txt >> $HWINFO
+				else
+					if [ "`rpm -qa | grep fglrx`" != "" ]; then
+						rpm -qa | grep fglrx >> $HWINFO
+					fi
+				fi
+				if [ "`grep -i 'radeon' $HOST-files/rpmqalast.txt`" != "" ]; then
+					grep -i 'radeon' $HOST-files/rpmqalast.txt >> $HWINFO
+				else
+					if [ "`rpm -qa | grep radeon`" != "" ]; then
+						rpm -qa | grep radeon >> $HWINFO
+					fi
+				fi
+				echo -e "\tAMD Driver Version-" >> $HWINFO
+				if [ -a /root/atisysteminfo-report.txt ]; then
+					if [ "`grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2`" != "" ]; then
+						grep -i 'linux driver release ident' /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+						grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt | head -n 1 >> $HWINFO
+					else
+						grep -i "ReleaseVersion=" /root/atisysteminfo-report.txt -A 1 | head -n 2 >> $HWINFO
+					fi
+				fi
+				if ! $HPSLED; then
+					hwinfo --gfxcard |grep 'Driver:' >> $HWINFO
+				fi
+			fi
+			if [ "$VGFXI" == "intel" ]; then
+				echo -e "\tIntel GFX Driver Version-" >> $HWINFO
+				grep -i "xorg-x11-driver-video" $HOST-files/rpmqalast.txt >> $HWINFO
+			fi
+			if [ "$VGFXN" == "nvidia" ]; then
+				echo -e "\tNVidia GFX Driver Version-" >> $HWINFO
+				hwinfo --gfxcard | grep 'Driver:' | grep 'is active' -A2 >> $HWINFO
+				if [ "`rpm -qa | grep nvidia`" != "" ]; then
+					rpm -qa | grep nvidia >> $HWINFO
+				fi
+			fi
+		fi
+	fi
+fi
+echo "###*     @#####|      RELEASE        |#####|    *###########" #RQH-12
+if $DEB; then
+	echo -e "\tDriver Version DEB" >> $HWINFO 
+	if [ "`dpkg --list | grep fglrx`" != "" ]; then
+		dpkg --list | grep fglrx >> $HWINFO
+	else
+		if [ "`dpkg --list | grep nvidia`" != "" ]; then
+			dpkg --list | grep nvidia >> $HWINFO
+		else
+			if [ "`dpkg --list | grep radeon`" != "" ]; then
+				dpkg --list | grep radeon >> $HWINFO
+			else
+				echo "No fglrx, radeon, or nvidia packages installed" >> $HWINFO
+			fi
+		fi
+	fi
+fi
+echo "###*     @#####|                     |#####|    *###########" #RQH-13
+###
+#
+###
+###
+#
+###
+#####################################################################################
+#####	Checking Networking Properties
+#####################################################################################
+##	WLAN
+#
+echo -e "\n\tWireless LAN-- (Only Atheros, Broadcom, Ralink, and Intel are filtered at this time)" >> $HWINFO
+echo "###*     @#####|_____________________|#####|_______    *####" #RQH-14
+if [ "$WLANA" == "Non-Standard" ]; then
+	echo -e "WLAN card is not Broadcom, Intel, Ralink, or Atheros- Not reporting status or driverversion!" >> $HWINFO
+	lspci -nnk | grep "Network controller" -A 2 >> $HWINFO
+else
+	echo -e "\tWireless LAN card is $WLANA" >> $HWINFO
+	lspci -nnk | grep "Network controller" -A 2 >> $HWINFO
+	if $SUSE; then
+		if ! $HPSLED; then
+			hwinfo --wlan | grep -i Driver: >> $HWINFO
+			hwinfo --netcard |grep 'Model:' | grep -i wlan >> $HWINFO
+		fi
+		if [ "$WLANA" == "Atheros" ]; then
+			echo -e "\tRPM version is-" >> $HWINFO
+			rpm -qa | grep -i 'compat-w' >> $HWINFO
+		fi
+		if [ "$WLANA" == "Broadcom" ]; then
+			echo -e "\tRPM version is-" >> $HWINFO
+			rpm -qa | grep -i 'broadcom' >> $HWINFO
+		fi
+	else
+		if $DEB; then
+			if [ "`lshw -C Network |grep 'Model:'`" == "" ]; then
+				echo 'no output' >> $HWINFO
+			else
+				lshw -C Network |grep 'Model:' | grep -i wlan >> $HWINFO
+			fi
+		fi
+	fi
+fi
+echo "###*      @########################################|   *####" #RQH-15
+#
+###	Wired
+#
+echo -e "\n\tNetworking - Wired LAN" >> $HWINFO
+if [ "`lspci -nnk |grep "Ethernet controller"`" == "" ]; then
+	echo 'no output' >> $HWINFO
+else
+	lspci -nnk |grep "Ethernet controller" -A 2 >> $HWINFO
+	if $SUSE; then
+		hwinfo --netcard |grep 'Model:' | grep -i pci >> $HWINFO
+	fi
+fi
+echo -e "\tMAC Addresss..." >> $HWINFO
+ifconfig eth0 | grep HWaddr | awk '{print $5}' >> $HWINFO
+echo "####*      @#######################################|   *####" #RQH-16
+###
+#
+###
+#####################################################################################
+#####	Checking Audio Properties
+#####################################################################################
+###
+echo -e "\n\tAudio" >> $HWINFO
+if $SUSE; then
+	if [ "`hwinfo --sound | grep 'Model:'`" != "" ]; then
+		hwinfo --sound |grep 'Model:' >> $HWINFO
+	fi
+fi
+lspci -nnk | grep -i audio -A 2 | grep -i kernel >> $HWINFO
+echo "#####*       @#####################################|   *####" #RQH-17
+####################################################################################
+#####	Checking Modem (Need to Obsolete this section in 2013)
+####################################################################################
+echo -e "\n\tModem" >> $HWINFO
+if $SUSE; then
+	if [ "`hwinfo --modem |grep 'Model:'`" == "" ]; then
+		echo 'no output' >> $HWINFO
+	else
+		hwinfo --modem |grep 'Model:' >> $HWINFO
+	fi
+else
+	echo -e "\n\tThis only Checks SUSE distributions--
+	 if you wish to contribute and supply the same command for your distro, please contact me" >> $HWINFO
+fi
+#
+if $DEB; then
+	if [ "`dpkg --list | grep 'mdc'`" == "" ]; then
+		echo "no modem found" >> $HWINFO
+	else
+		dpkg --list | grep 'mdc' >> $HWINFO
+	fi
+fi
+echo "######*                              |#####|           *####" #RQH-18
+##################################################################################
+#####	Checking Bluetooth
+##################################################################################
+echo -e "\n\tBluetooth" >> $HWINFO
+for IDS in $(lsusb | awk '{print $6}'); do lsusb -v -d $IDS | grep -q Bluetooth && BTMAKE=$(lsusb -v -d $IDS | grep idVendor | awk '{print $3}') && BTPRODUCT=$(lsusb -v -d $IDS | grep iProduct | awk '{print $3}')  echo "$BTMAKE $IDS" ; done >> $HWINFO
+if $SUSE; then
+	hwinfo | grep -i 'bluetooth' | grep 'devices' | tail -n 7 | head -n 5 >> $HWINFO	
+	lsmod | grep -i 'btusb' >> $HWINFO
+	if [ "`hwinfo --bluetooth |grep 'Model:'`" == "" ]; then
+		echo 'no device found' >> $HWINFO
+	else
+		hwinfo --bluetooth |grep 'Model:' >> $HWINFO
+	fi
+fi
+echo "################################*    |#####|    *###########" #RQH-19
+##################################################################################
+#####	Checking Webcam
+##################################################################################
+echo -e "\n\tWeb Cam" >> $HWINFO
+for IDS in $(lsusb | awk '{print $6}'); do lsusb -v -d $IDS | grep -iq "Video Streaming" && WCMAKE=$(lsusb -v -d $IDS | grep idVendor | awk '{print $3}') && WCPRO=$(lsusb -v -d $IDS | grep iProduct | awk '{print $3 " " $4 $5 $6}') && echo "$WCMAKE $WCPRO $IDS" ; done >> $HWINFO
+if $SUSE; then
+	if [ "`hwinfo --usb |grep -i 'webcam'`" == "" ]; then
+		echo 'no device found' >> $HWINFO
+	else
+		hwinfo --usb |grep -i 'webcam' >> $HWINFO
+	fi
+fi
+echo "################################*    |#####|    *###########" #RQH-20
+##################################################################################
+#####	Checking Optical Drive
+##################################################################################
+echo -e "\n\tCD/DVD-Rom Drive" >> $HWINFO
+if ! $SUSE; then
+	wodim -prcap  | grep "Device seems to be" >> $HWINFO $ERRL
+fi
+if $SUSE; then
+	if [ "`hwinfo --cdrom |grep Features`" == "" ]; then
+		echo 'no info available' >> $HWINFO
+	else
+		hwinfo --cdrom |grep Features >> $HWINFO $ERRL
+	fi
+fi
+echo "################################*    |#####|    *###########" #RQH-21
+##################################################################################
+#####	Synaptics Touchpad
+##################################################################################
+echo -e "\n\tSynaptics Touchpad (Laptops)" >> $HWINFO
+if $HPSLED; then
+	echo -e "\tSynaptics Touchpad information" >> $HWINFO
+	if [ "`ls /root/ | grep -i 'syn'`" == "" ]; then
+		if [ "`ls $HOST-files/ | grep -i 'Syn'`" == "" ]; then
+			if [ -a /opt/Synaptics/bin/syncontrol ]; then
+				/opt/Synaptics/bin/syncontrol diag $ERRL
+				cp /root/SynDiag*.log $HOST-files/.
+				grep 'Plug and Play ID' /root/SynDiag*.log | head -n 1 >> $HWINFO
+			else
+				echo "No Proprietary Synaptics driver installed" >> $HWINFO
+			fi
+		fi
+	else
+		cp /root/SynDiag*.log $HOST-files/.
+		grep 'Plug and Play ID' /root/SynDiag*.log | head -n 1 >> $HWINFO
+	fi
+else
+	echo -e "\n\tThis only Checks SUSE distributions--
+	 if you wish to contribute and supply the same command for your distro, please contact me" >> $HWINFO
+fi
+echo "################################*    |#####|    *###########" #RQH-22
+###
+#
+###
+##################################################################################
+#####	Checking Hard Drive
+##################################################################################
+###
+echo -e "\n\tHard Drive" >> $HWINFO
+if [ "`fdisk -l | grep Disk | grep /dev | awk '{print $3,$4}'`" == "" ]; then
+	echo 'no info available' >> $HWINFO
+else
+	fdisk -l | grep Disk | grep /dev | awk '{print $3,$4}' >> $HWINFO
+fi
+echo "################################*    |#####|    *###########" #RQH-23
+##################################################################################
+#####	Repos
+##################################################################################
+echo -e "\n\tRepositories Enabled" >> $HWINFO
+if $DEB; then
+	cat /etc/apt/sources.list >> $HWINFO
+	for PPA in $(ls /etc/apt/sources.list.d); do cat /etc/apt/sources.list.d/"$PPA" >> $HWINFO; done  
+fi
+if $SUSE; then
+	zypper lr >> $HWINFO
+fi
+if $REDHAT; then
+	yum repolist >> $HWINFO $ERRL
+fi
+echo -e "\n\tThank You for Viewing the output of $SCRIPT_VERSION .. I'm DONE!" >> $HWINFO
+#
+echo "################################*    |#####|    *###########" #RQH-24
+###
+#
+###
+##################################################################################
+#####	Finishing run script, Cleaning Up
+##################################################################################
+###
+chmod 777 $HWINFO
+cp $HWINFO SysInfo-$HOST.txt
+if $MAILA; then
+	cp SysInfo-$HOST.txt /tmp/SysInfo-mail.txt
+fi
+echo "################################*---------------*###########" #RQH-25
+cp $HWINFO $HOST-files/$HOST-$TDATE.txt
+cp $HWINFO $HOST-files/$HOST-$TDATE.rtf
+echo "#.C4.##################################################.C4.#" #RQH-26
+if [ -a $HOST-HWIDs ]; then
+	mv $HOST-HWIDs $HOST-files/.
+fi
+##	Beginning PARTIAL	##
+if ! $PARTIAL; then
+	if [ -a /root/atisysteminfo-report.txt ]; then
+		cp /root/atisysteminfo-report.txt $HOST-files/.
+	fi
+fi
+if $PARTIAL; then
+	if [ "`ls $HOST-files/ | grep -i 'Syn'`" != "" ]; then
+		rm $HOST-files/SynDiag*.log
+	fi
+fi
+##	ENDING ! PARTIAL	##
+echo "############################################################" #RQH-27
+##	Starting Mail
+if $MAILA; then
+	echo -e "\n\tType the FROM email address..."
+		read FROMA
+	echo -e "\n\tType the TO email address..."
+		read EMAIL
+	echo -e "\n\tType the SUBJECT For the email..."
+		read SUBA
+		SUBJECT="$SUBA -- SysInfo Output"
+		EMAILMESSAGEZ="/tmp/SysInfo-mail.txt"
+		echo -e "\n\tThank You for Viewing the output of $SCRIPT_VERSION" >> $EMAILMESSAGEZ
+	echo -e "\n\tDo you also want to send the tar-ball as a separate attachment? \n[y/n]"
+	read MAILC
+	if [ "$MAILC" == "n" ]; then
+		ATTMAIL=false
+		/bin/mail -s "$SUBJECT" "$EMAIL" -f $FROMA < $EMAILMESSAGEZ
+		rm /tmp/SysInfo-mail.txt
+	fi
+fi
+##	Ending Mail
+chmod 777 $HOST-files/*.*
+chmod -R 4777 $HOST-files
+##
+echo -e "\tContents List of Gathered logs and files in the folder and tar-file"
+###
+#
+###
+##################################################################################
+#####	
+##################################################################################
+##	BEGINNING ! PARTIAL		##
+if ! $PARTIAL; then
+	ls $HOST-files | less > $HOST-files/contents.txt #&& less $HOST-files/contents.txt
+	tar -czf $HOST-$TDATE-files.tar.gz $HOST-files 
+	rm $HWINFO
+fi
+##	ENDING ! PARTIAL	##
+##	Beginning PARTIAL
+if $PARTIAL; then
+	tar -czf $HOST-$TDATE-files.tar.gz $HOST-files
+	rm $HWINFO
+fi
+if $MAILA; then
+	if [ "$MAILC" == "y" ]; then
+		ATTMAIL=true
+		if $ATTMAIL; then
+			/usr/bin/mailx -a $HOST-*-files.tar.gz -s "$SUBJECT" "$EMAIL"  -f $FROMA < $EMAILMESSAGEZ
+			rm /tmp/SysInfo-mail.txt
+		fi
+	fi
+fi
+##	Ending PARTIAL
+mv $HOST-files $HOST-$TDATE-files
+if [ $PWD == $HOST-postrun-sysinfo ]; then
+	cd ..
+	mv $HOST-postrun-sysinfo $HOST-postrun-$TDATE
+fi
+echo -e "\t---------------------------------------------------------------"
+echo $MOTR
+exit $?
+
