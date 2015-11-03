@@ -1,0 +1,116 @@
+Note: 23 units that official declared in our wiki asset (19PV and 4SI) has been destroyed
+
+[PV official]: in the paper list part (14)
+===============
+Prano-PV-SKU3-DIS
+Prano-PV-SKU1-UMA
+Roxette-PV1-SKU6-Dis
+Roxette-PV1-M6B(SKU8)
+Pixies-PV1-SKU22
+Pixies-PV1-SKU20
+Journey-PV1-M1B(SKU1)
+Festina-PV-SKU3-UMA
+
+Festina-PV-SKU2-UMA
+Cure-B#06-PV-SKU6-DIS
+Cure-B#07-PV-SKU7-UMA
+Cure-B#07-PV-SKU7-UMA
+Police-PV1-SKU18
+Ramones-PV1-IDM5A
+
+
+[PV official]: in our wiki asset part (19)
+===============
+python sku1 dis A4 pv
+Racer
+afterburn PV SKU4 VBK10810005
+excalibur TWR PVT sku No:001 TWR config 6
+merlin TWR PVT SKU No:003 TWR Model B
+VBL20 viper pv proto plan sku4 
+sku3:81.3JH01.013G allinone 
+Rampage 14 dis pv
+Ricochet 17 dis pv
+Renegade 15 DIS pv
+Renegade 15 UMA pv
+Rampage14 uma pv
+comet pv1 sku4
+comet pv1 sku8
+switchback 1.0 pv1 sku-1 mini-2
+thriller1.0 pv1 sku19 banlance-4
+cylcone1 pv1 sku1 balance-1
+cyclone1 pv1 sku10 mini-2
+Orbitz pv 11.6
+
+
+[SI results]: units marked with "+" mean SI official in the paper list
+=======================================================================
+[list]SI units included in [preload.suse.de] (the list sunny forward to
+us)
+
+HP Roadrunner Roadrunner 14 SI-1 SKU 4 
+HP Velma VL SI-1 SKU#4/EliteBook 8570w 
+HP Velma VL SI-1 SKU#1/EliteBook 8570w 
+HP Mighty PLANT F310 /EliteBook 2170p  SI-1 SKU 
+HP Popeye PLANT F310/POPEYE14 SI-1 SKU4 
+HP Aladdin Aladdin SI2 SKU2 MINI1 
+HP Aladdin Alddin SI2 SKU7 MINI1 
+HP Mighty Mighty SI2 SKU 5 MB 11244-SC 1.5G NOCNFG_1ST_H 
+HP Velma VL SI-2/VLM#02-SI2 
+HP Velma Velma sku6 SI-2/8570w 
+HP Cyclone cyclone SI SKU3 
+HP Cyclone Cyclone SI SKU6 
+HP Comet COMET SI-2MSKU2 MINI2 
+HP Thriller thriller 1.0 SI SKU12 
+BEI 200 HP Gucci 1.0 SI SKU4 
+BEI 201 HP Gucci 1.0 SI SKU3 
+BEI 204 HP Gucci 2.0 SI SKU1 
+BEI 205 HP Gucci 2.0 SI SKU4 
+BEI 206 HP Piaget 1.0 SI Model2 UMA 
+BEI 207 HP Piaget 1.5 SI Model3 UMA 
+BEI 208 HP Zeno 1.0 SI SKU6 UMA 
+BEI 210 HP Prano 1.0 SI SKU1 UMA 
+BEI 213 HP Valima 1.0 SI SKU5 UMA 
+BEI 214 HP Valima 1.0 SI SKU8 UMA 
+BEI 218 HP Fossil 2.0 SI SKU2 UMA 
+BEI 220 HP Gucci 3.0 SI SKU7 
+BEI 222 HP Fossil 2.0 SI SKU2 
+BEI 223 HP Valima 1.0 SI SKU4 UMA 
+BEI 225 HP Heart SI1 SKU2 UMA 
+BEI 228 HP Clash B SI2 SKU5 
++       BEI 229 HP Heart SI-2 SKU2
++       BEI 230 HP Cure SI2 SKU6 
++       BEI 231 HP Journey 1.0 SI SKU1 
++       BEI 246 HP Ramones 1.0 SI Build SKU10 - Balance 
++       BEI 247 HP Roxette 1.0 SI SKU4 - Balance 
++       BEI 255 HP Roxette 1.0 SI SKU8 - Balance - 2 
++       BEI 256 HP Roxette 1.0 SI SKU5 - Balance - 1 
+BEI 262 HP Police 1.0 SI SKU4 - Balance 
++       BEI 263 HP Police 1.0 SI SKU0 - Balance 
++       BEI 264 HP Pixies SI SKU6 - Balance 
++       BEI 265 HP Pixies SI SKU8 - Balance 
+* BEI 311 HP Penn6U 1.0 CHI-P#06-SI (SKU6) (located in Taipei, should double check if SI?)
+VBL20010018 HP Viper SI-2 SKU3
+
+======Additional units kept in our hand that not in above list
+    PEBBLES 15 SI SKU12/4545S (wiki page should be modify)
+    Roger 17 SKU 10-1/SI
+    Heart-SI1-SKU1-UMA
++    Heart-SI1-SKU5-Dis
+    Richie 13 SKU2-1/SI
+    Casper hp sku#5-Mini Build1/SI 
+
+======Units has been official declared at custom (the first 4 units
+listed in ChenZi's table, the left 4 is not)
+
+    HP Cyclone cyclone SI SKU3 
+    HP Cyclone Cyclone SI SKU6 
+    HP Comet COMET SI-2MSKU2 MINI2 
+    HP Thriller thriller 1.0 SI SKU12
+    HP Velma VL SI-2/VLM#02-SI2 
+    HP Velma Velma sku6 SI-2/8570w 
+    HP Popeye PLANT F310/POPEYE14 SI-1 SKU4 
+    PEBBLES 15 SI SKU12/4545S
+
+======Eleven units marked with "+" is official declared SI units
+included in the paper list
+
